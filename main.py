@@ -6,8 +6,15 @@ from sklearn.cluster import DBSCAN
 from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import LocalOutlierFactor
 
+from scipy import ndimage as ndi
 
-#from OS2D.demo import demo as neural_network
+from skimage.segmentation import watershed
+from skimage.feature import peak_local_max
+
+from ImageSim.ResNet50Sim import ResNet50Sim
+from ImageSim.VGG16Sim import VGGSim
+import pytesseract
+from OS2D.neural import Os2d
 
 class MyImage:
 	def __init__(self, img_name):
@@ -28,6 +35,9 @@ class CVrunner:
 		self.template_imgs = list(self.load_images_from_folder(self.template_location))
 		self.test_imgs = list(self.load_images_from_folder(self.test_location))
 		#self.neural_network_obj = neural_network()
+		self.Os2d = Os2d()
+		self.VGGSim = VGGSim()
+		self.ResNet50Sim = ResNet50Sim()
 
 
 	def load_images_from_folder(self,folder):
@@ -57,7 +67,7 @@ class CVrunner:
 
 	def homography(self,kp1,img1,kp2,img2,good):
 		MIN_MATCH_COUNT = 10
-		img2_copy = img2.copy()
+		img2_copy = img2#.copy()
 		if len(good)>MIN_MATCH_COUNT:
 
 			src_pts = np.float32([ kp1[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
@@ -67,17 +77,90 @@ class CVrunner:
 			h,w,d = img1.shape
 			pts = np.float32([ [0,0],[0,h-1],[w-1,h-1],[w-1,0] ]).reshape(-1,1,2)
 			dst = cv2.perspectiveTransform(pts,M)
+			#print(, )
+			#cv2.rectangle(img2_copy,, (255,0,0), 2)
+			pt1 = [int(dst[0][0][0]),int(dst[0][0][1])]
+			pt2 = [int(dst[1][0][0]),int(dst[1][0][1])]
+			pt3 = [int(dst[2][0][0]),int(dst[2][0][1])]
+			pt4 = [int(dst[3][0][0]),int(dst[3][0][1])]
+			img2_copy = cv2.circle(img2_copy,(pt1[0],pt1[1]), radius=5, color=(0, 0, 255), thickness=-1)
+			img2_copy = cv2.circle(img2_copy,(pt2[0],pt2[1]), radius=5, color=(0, 0, 255), thickness=-1)
+			img2_copy = cv2.circle(img2_copy,(pt3[0],pt3[1]), radius=5, color=(0, 0, 255), thickness=-1)
+			img2_copy = cv2.circle(img2_copy,(pt4[0],pt4[1]), radius=5, color=(0, 0, 255), thickness=-1)
 			img2_copy = cv2.polylines(img2_copy,[np.int32(dst)],True,255,3, cv2.LINE_AA)
 		else:
 			print( "Not enough matches are found - {}/{}".format(len(good), MIN_MATCH_COUNT) )
 			matchesMask = None
 
 		draw_params = dict(matchColor = (0,255,0), # draw matches in green color
-                   singlePointColor = None,
-                   matchesMask = matchesMask, # draw only inliers
-                   flags = 2)
+				   singlePointColor = None,
+				   matchesMask = matchesMask, # draw only inliers
+				   flags = 2)
 		img3 = cv2.drawMatches(img1,kp1,img2_copy,kp2,good,None,**draw_params)
 		plt.imshow(cv2.cvtColor(img3, cv2.COLOR_BGR2RGB), 'gray'),plt.show()
+
+	
+	def watershed(self,img):
+		img_grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+		#img = img_object.img
+		ret, thresh = cv2.threshold(img_grey,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+		# noise removal
+		kernel = np.ones((3,3),np.uint8)
+		opening = cv2.morphologyEx(thresh,cv2.MORPH_OPEN,kernel, iterations = 2)
+
+		#img_rgb = cv2.cvtColor(img_cv, cv2.COLOR_BGR2RGB)
+		#print(pytesseract.image_to_string(thresh))
+		# sure background area
+		sure_bg = cv2.dilate(opening,kernel,iterations=3)
+		# Finding sure foreground area
+		dist_transform = cv2.distanceTransform(opening,cv2.DIST_L2,5)
+		ret, sure_fg = cv2.threshold(dist_transform,0.7*dist_transform.max(),255,0)
+		# Finding unknown region
+		sure_fg = np.uint8(sure_fg)
+		unknown = cv2.subtract(sure_bg,sure_fg)
+		# Marker labelling
+		ret, markers = cv2.connectedComponents(sure_fg)
+		# Add one to all labels so that sure background is not 0, but 1
+		markers = markers+1
+		# Now, mark the region of unknown with zero
+		markers[unknown==255] = 0
+		markers = cv2.watershed(img,markers)
+		img[markers == -1] = [255,0,0]
+		cv2.imshow('thresh', thresh)
+		cv2.imshow('opening', opening)
+		cv2.imshow('sure_bg', sure_bg)
+		cv2.imshow('sure_fg', sure_fg)
+		cv2.imshow('markers', img)
+		cv2.waitKey(0)
+		cv2.destroyAllWindows()
+
+	def sklearn_watershed(self,roi):
+		image = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+		# Now we want to separate the two objects in image
+		# Generate the markers as local maxima of the distance to the background
+		distance = ndi.distance_transform_edt(image)
+		coords = peak_local_max(distance, footprint=np.ones((3, 3)), labels=image)
+		mask = np.zeros(distance.shape, dtype=bool)
+		mask[tuple(coords.T)] = True
+		markers, _ = ndi.label(mask)
+		labels = watershed(-distance, markers, mask=image)
+
+		fig, axes = plt.subplots(ncols=3, figsize=(9, 3), sharex=True, sharey=True)
+		ax = axes.ravel()
+
+		ax[0].imshow(roi, cmap=plt.cm.gray)
+		ax[0].set_title('Overlapping objects')
+		ax[1].imshow(-distance, cmap=plt.cm.gray)
+		ax[1].set_title('Distances')
+		ax[2].imshow(labels, cmap=plt.cm.nipy_spectral)
+		ax[2].set_title('Separated objects')
+
+		for a in ax:
+			a.set_axis_off()
+
+		fig.tight_layout()
+		plt.show()
+
 
 
 
@@ -165,19 +248,23 @@ class CVrunner:
 				ratio = len(matches) * 100/len(des1)
 				#print('ratio: ',ratio)
 				if ratio > 4.0:
-					#roi = self.test(kp1,des1,img1,cluster_kp,cluster_des,img2, matches)
-					self.homography(kp1,img1,cluster_kp,img2,matches)
-					#rois.append(roi)
+					roi = self.test(kp1,des1,img1,cluster_kp,cluster_des,img2, matches)
+					#self.homography(kp1,img1,cluster_kp,img2,matches)
+					#self.watershed(roi)
+					rois.append(roi)
 		#fig = plt.figure(constrained_layout = True)
 		#rows = int(len(rois)/2) + 1
 		#cols = 2
-	
+		resized_img1 = cv2.resize(img1, (224,224))
 		for i,roi in enumerate(rois):
-			
+			#print(roi.shape)
+			resized_roi = cv2.resize(roi, (224,224))
 			#self.neural_network_obj.image_reader(cv2.cvtColor(img1, cv2.COLOR_BGR2RGB),cv2.cvtColor(roi, cv2.COLOR_BGR2RGB))
 			#self.neural_network_obj.main()
-			
-			pass
+			ret = self.imgsim.main([cv2.cvtColor(resized_img1, cv2.COLOR_BGR2RGB),cv2.cvtColor(resized_roi, cv2.COLOR_BGR2RGB)])
+			print("image similarity_euclidean:{}     image similarity_cosine:{}".format(ret[0],ret[1]))
+			plt.imshow(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB), 'gray'),plt.show()
+			#pass
 			#fig.add_subplot(rows, cols, i+1)
 			#plt.imshow(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB))
 			#plt.axis('off')
