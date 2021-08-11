@@ -53,10 +53,12 @@ Uncomment Lines 243 and 244
 
 With ResNet:
 Uncomment the following on Line 272
+
 #ret = self.ResNetSim.main([cv2.cvtColor(resized_img1, cv2.COLOR_BGR2RGB),cv2.cvtColor(resized_roi, cv2.COLOR_BGR2RGB)])
 
 With VGG16:
 Uncomment the following on Line 269
+
 #ret = self.VGGSim.main([cv2.cvtColor(resized_img1, cv2.COLOR_BGR2RGB),cv2.cvtColor(resized_roi, cv2.COLOR_BGR2RGB)])
 
 then uncomment Lines 274,286 and section 279-284
