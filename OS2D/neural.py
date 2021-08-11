@@ -17,7 +17,7 @@ class Os2d():
 	def __init__(self):
 		self.logger = setup_logger("OS2D")
 		cfg.is_cuda = torch.cuda.is_available()
-		cfg.init.model = "/home/whoknows/Documents/FeatureMatching-Python/os2d/models/os2d_v2-train.pth"
+		cfg.init.model = "/home/whoknows/Documents/FeatureMatching-Python/OS2D/models/os2d_v2-train.pth"
 		self.net, self.box_coder, self.criterion, self.img_normalization, self.optimizer_state = build_os2d_from_config(cfg)
 		
 	

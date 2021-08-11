@@ -1,4 +1,5 @@
 import os
+
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,7 +12,7 @@ from scipy import ndimage as ndi
 from skimage.segmentation import watershed
 from skimage.feature import peak_local_max
 
-from ImageSim.ResNet50Sim import ResNet50Sim
+from ImageSim.ResNet50Sim import ResNetSim
 from ImageSim.VGG16Sim import VGGSim
 import pytesseract
 from OS2D.neural import Os2d
@@ -34,10 +35,9 @@ class CVrunner:
 		self.template_location = os.path.join(current_dir,'templates')
 		self.template_imgs = list(self.load_images_from_folder(self.template_location))
 		self.test_imgs = list(self.load_images_from_folder(self.test_location))
-		#self.neural_network_obj = neural_network()
-		self.Os2d = Os2d()
+		#self.Os2d = Os2d()
 		self.VGGSim = VGGSim()
-		self.ResNet50Sim = ResNet50Sim()
+		self.ResNetSim = ResNetSim()
 
 
 	def load_images_from_folder(self,folder):
@@ -109,7 +109,7 @@ class CVrunner:
 		opening = cv2.morphologyEx(thresh,cv2.MORPH_OPEN,kernel, iterations = 2)
 
 		#img_rgb = cv2.cvtColor(img_cv, cv2.COLOR_BGR2RGB)
-		#print(pytesseract.image_to_string(thresh))
+		print(pytesseract.image_to_string(thresh))
 		# sure background area
 		sure_bg = cv2.dilate(opening,kernel,iterations=3)
 		# Finding sure foreground area
@@ -244,32 +244,55 @@ class CVrunner:
 			if matches is None:
 				pass
 			else:
-				#print(len(matches))
 				ratio = len(matches) * 100/len(des1)
-				#print('ratio: ',ratio)
 				if ratio > 4.0:
-					roi = self.test(kp1,des1,img1,cluster_kp,cluster_des,img2, matches)
-					#self.homography(kp1,img1,cluster_kp,img2,matches)
+
+					#Uncomment for CNNs
+					#roi = self.test(kp1,des1,img1,cluster_kp,cluster_des,img2, matches)
+					#rois.append(roi)
+
+					#uncomment for bounding boxes
+					self.homography(kp1,img1,cluster_kp,img2,matches)
+
+
 					#self.watershed(roi)
-					rois.append(roi)
-		#fig = plt.figure(constrained_layout = True)
-		#rows = int(len(rois)/2) + 1
-		#cols = 2
-		resized_img1 = cv2.resize(img1, (224,224))
-		for i,roi in enumerate(rois):
-			#print(roi.shape)
-			resized_roi = cv2.resize(roi, (224,224))
-			#self.neural_network_obj.image_reader(cv2.cvtColor(img1, cv2.COLOR_BGR2RGB),cv2.cvtColor(roi, cv2.COLOR_BGR2RGB))
-			#self.neural_network_obj.main()
-			ret = self.imgsim.main([cv2.cvtColor(resized_img1, cv2.COLOR_BGR2RGB),cv2.cvtColor(resized_roi, cv2.COLOR_BGR2RGB)])
-			print("image similarity_euclidean:{}     image similarity_cosine:{}".format(ret[0],ret[1]))
-			plt.imshow(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB), 'gray'),plt.show()
-			#pass
-			#fig.add_subplot(rows, cols, i+1)
-			#plt.imshow(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB))
-			#plt.axis('off')
-			#plt.title(i)
-		#plt.show(block=True)
+
+					
+		
+		if len(rois) > 0:
+			resized_img1 = cv2.resize(img1, (224,224))
+			fig = plt.figure(constrained_layout = True)
+			rows = int(len(rois)/2) + 1
+			cols = 2
+			for i,roi in enumerate(rois):
+				#uncomment to view rois individually
+				#plt.imshow(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB)),plt.show()
+
+
+				resized_roi = cv2.resize(roi, (224,224))
+
+
+				#Using VGG16
+				ret = self.VGGSim.main([cv2.cvtColor(resized_img1, cv2.COLOR_BGR2RGB),cv2.cvtColor(resized_roi, cv2.COLOR_BGR2RGB)])
+
+				#Using ResNet50
+				#ret = self.ResNetSim.main([cv2.cvtColor(resized_img1, cv2.COLOR_BGR2RGB),cv2.cvtColor(resized_roi, cv2.COLOR_BGR2RGB)])
+
+
+
+				ret = [round(x,2) for x in ret]
+
+				##########################
+				#roi plot for CNNs
+				##########################
+				'''
+				fig.add_subplot(rows, cols, i+1)
+				plt.imshow(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB))
+				plt.axis('off')
+				plt.title('sim_ecli:{} sim_cosine:{}'.format(ret[0],ret[1]))
+				'''
+			#uncomment for roi plots
+			plt.show(block=True)
 
 		
 			

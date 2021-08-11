@@ -8,7 +8,7 @@ import os
 import numpy as np
 from tensorflow.keras.layers import Input
 from tensorflow.keras.models import Model
-from vgg16 import VGG16
+from ImageSim.vgg16 import VGG16
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.applications.imagenet_utils import preprocess_input
 from sklearn.metrics.pairwise import cosine_similarity
@@ -78,5 +78,7 @@ class VGGSim():
 		# Cacluate euclidean similarity: range from [0, 1], that is, [completedly different, same]
 		image_similarity_euclidean = self.calculate_similarity_euclidean(vector1,vector2)
 
-		print('VGG16 image similarity_euclidean:',image_similarity_euclidean)
-		print("VGG16 image similarity_cosine: {:.2f}%".format(image_similarity_cosine[0][0]*100))
+		#print('VGG16 image similarity_euclidean:',image_similarity_euclidean)
+		#print("VGG16 image similarity_cosine: {:.2f}%".format(image_similarity_cosine[0][0]*100))
+
+		return[image_similarity_euclidean,image_similarity_cosine[0][0]*100]
