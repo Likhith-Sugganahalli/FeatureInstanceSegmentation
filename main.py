@@ -15,7 +15,9 @@ from skimage.feature import peak_local_max
 from ImageSim.ResNet50Sim import ResNetSim
 from ImageSim.VGG16Sim import VGGSim
 import pytesseract
-from OS2D.neural import Os2d
+
+
+#from OS2D.neural import Os2d
 
 class MyImage:
 	def __init__(self, img_name):
@@ -37,8 +39,11 @@ class CVrunner:
 		self.template_location = os.path.join(current_dir,'templates')
 		self.template_imgs = list(self.load_images_from_folder(self.template_location))
 		self.test_imgs = list(self.load_images_from_folder(self.test_location))
-		self.Os2d = Os2d()
+		#OS2D is commented right now, due to it throwing up CUDA memory problems out of the blue
+		#self.Os2d = Os2d()
+		print('setting up VGG')
 		self.VGGSim = VGGSim()
+		print('setting up ResNet')
 		self.ResNetSim = ResNetSim()
 
 	def load_images_from_folder(self,folder):
@@ -239,7 +244,7 @@ class CVrunner:
 					rois.append(roi)
 
 					#uncomment for bounding boxes
-					#self.homography(kp1,img1,cluster_kp,img2,matches)
+					self.homography(kp1,img1,cluster_kp,img2,matches)
 
 					#self.watershed(roi)
 
