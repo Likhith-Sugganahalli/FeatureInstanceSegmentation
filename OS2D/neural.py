@@ -24,11 +24,12 @@ class Os2d():
 	def imager_loader(self, class_image_location_list, test_image_location):
 		self.class_ids = []
 		self.class_images = []
+		print('hi {}'.format(test_image_location))
 		self.input_image = read_image(test_image_location)
 		#print('here')
 		
 		for i,image in enumerate(class_image_location_list):
-			print(image)
+			#print(image)
 			self.class_images.append(read_image(image))
 			self.class_ids.append(i)
 
@@ -42,7 +43,8 @@ class Os2d():
 		self.input_image = read_image_from_array(roi)
 
 
-	def main(self,resize_test):
+	def main(self,resize_test=1500):
+		#torch.cuda.clear_memory_allocated()
 
 		transform_image = transforms.Compose([
 						transforms.ToTensor(),
@@ -121,7 +123,7 @@ class Os2d():
 								cfg.visualization.eval)
 
 if __name__ == '__main__':
-	diff_image = demo()
+	diff_image = Os2d()
 	diff_image.imager_loader(["/home/whoknows/Documents/FeatureMatching-Python/templates/choco_pie_top.png"],
 					"/home/whoknows/Documents/FeatureMatching-Python/test/test_image1.png")
 	diff_image.main()

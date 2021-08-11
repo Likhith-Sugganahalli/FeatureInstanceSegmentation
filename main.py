@@ -29,16 +29,17 @@ class MyImage:
 		return self.__name
 
 class CVrunner:
+
+
 	def __init__(self):
 		current_dir = os.path.dirname(os.path.realpath(__file__))
 		self.test_location = os.path.join(current_dir,'test')
 		self.template_location = os.path.join(current_dir,'templates')
 		self.template_imgs = list(self.load_images_from_folder(self.template_location))
 		self.test_imgs = list(self.load_images_from_folder(self.test_location))
-		#self.Os2d = Os2d()
+		self.Os2d = Os2d()
 		self.VGGSim = VGGSim()
 		self.ResNetSim = ResNetSim()
-
 
 	def load_images_from_folder(self,folder):
 		for filename in os.listdir(folder):
@@ -52,7 +53,6 @@ class CVrunner:
 			for img2 in self.test_imgs:
 				self.runner(img1,img2)
 
-
 	def orb_features(self,img_object):
 
 		img = img_object.img
@@ -62,8 +62,6 @@ class CVrunner:
 		kp, des = orb2.detectAndCompute(img, None)
 
 		return kp,des
-
-		
 
 	def homography(self,kp1,img1,kp2,img2,good):
 		MIN_MATCH_COUNT = 10
@@ -98,7 +96,6 @@ class CVrunner:
 				   flags = 2)
 		img3 = cv2.drawMatches(img1,kp1,img2_copy,kp2,good,None,**draw_params)
 		plt.imshow(cv2.cvtColor(img3, cv2.COLOR_BGR2RGB), 'gray'),plt.show()
-
 	
 	def watershed(self,img):
 		img_grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -161,10 +158,6 @@ class CVrunner:
 		fig.tight_layout()
 		plt.show()
 
-
-
-
-
 	def test(self,kp1,des1,img1,kp2,des2,img2, matches):
 
 		src_pts = np.float32([ kp1[m.queryIdx].pt for m in matches ])
@@ -184,7 +177,6 @@ class CVrunner:
 		#print(roi_img2.shape)
 		return roi_img2
 
-
 	def bruteMatcher(self,kp1,des1,kp2,des2):
 		# create BFMatcher object
 		bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
@@ -195,7 +187,6 @@ class CVrunner:
 		except:
 			pass
 	
-
 	def dbscan(self,kp):
 
 		kp_points = []
@@ -219,9 +210,7 @@ class CVrunner:
 		print('Estimated number of noise points: %d' % n_noise_)
 
 		return core_samples_mask,labels
-
-
-		
+	
 	def runner(self,img1_object,img2_object):
 
 		kp1, des1 = self.orb_features(img1_object)
@@ -232,9 +221,7 @@ class CVrunner:
 
 		kp2_clusters,des2_clusters = self.grouper(inlied_kp2,inlied_des2)
 		self.refiner(kp1,des1,kp2_clusters,des2_clusters,img1_object,img2_object)
-
-		
-		
+	
 	def refiner(self,kp1,des1,kp2_clusters,des2_clusters,img1_object,img2_object):
 		img1 = img1_object.img
 		img2 = img2_object.img
@@ -248,12 +235,11 @@ class CVrunner:
 				if ratio > 4.0:
 
 					#Uncomment for CNNs
-					#roi = self.test(kp1,des1,img1,cluster_kp,cluster_des,img2, matches)
-					#rois.append(roi)
+					roi = self.test(kp1,des1,img1,cluster_kp,cluster_des,img2, matches)
+					rois.append(roi)
 
 					#uncomment for bounding boxes
-					self.homography(kp1,img1,cluster_kp,img2,matches)
-
+					#self.homography(kp1,img1,cluster_kp,img2,matches)
 
 					#self.watershed(roi)
 
@@ -271,16 +257,16 @@ class CVrunner:
 
 				resized_roi = cv2.resize(roi, (224,224))
 
+				#self.Os2d.image_reader(img1,roi)
+				#self.Os2d.main()
 
 				#Using VGG16
-				ret = self.VGGSim.main([cv2.cvtColor(resized_img1, cv2.COLOR_BGR2RGB),cv2.cvtColor(resized_roi, cv2.COLOR_BGR2RGB)])
+				#ret = self.VGGSim.main([cv2.cvtColor(resized_img1, cv2.COLOR_BGR2RGB),cv2.cvtColor(resized_roi, cv2.COLOR_BGR2RGB)])
 
 				#Using ResNet50
 				#ret = self.ResNetSim.main([cv2.cvtColor(resized_img1, cv2.COLOR_BGR2RGB),cv2.cvtColor(resized_roi, cv2.COLOR_BGR2RGB)])
 
-
-
-				ret = [round(x,2) for x in ret]
+				#ret = [round(x,2) for x in ret]
 
 				##########################
 				#roi plot for CNNs
@@ -292,11 +278,7 @@ class CVrunner:
 				plt.title('sim_ecli:{} sim_cosine:{}'.format(ret[0],ret[1]))
 				'''
 			#uncomment for roi plots
-			plt.show(block=True)
-
-		
-			
-
+			#plt.show(block=True)
 
 	def grouper(self,inlied_kp,inlied_des):
 
@@ -332,7 +314,6 @@ class CVrunner:
 					pass
 		return kp_clusters,des_clusters
 
-
 	def outlierKP(self,kp,des):
 		kp_points = []
 		for point in kp:
@@ -351,10 +332,6 @@ class CVrunner:
 		return inlied_kp, inlied_des
 
 
-		
-
-
-	
 if __name__ == '__main__':
 	diff_image = CVrunner()
 	diff_image.main()
