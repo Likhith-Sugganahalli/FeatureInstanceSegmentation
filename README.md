@@ -10,12 +10,12 @@ Output of the program
 
 
 Methods investigated:
-    As the problem is an ongoing research topic, there was no one main concept to identify and apply,
-    so i choose to initial commit to 4 main ideas to proceed with,
+As the problem is an ongoing research topic, there was no one main concept to identify and apply,
+so i choose to initial commit to 4 main ideas to proceed with,
 
-    Contour Matching and all such applications which worked to redefine the test image in terms of the input image
+Contour Matching and all such applications which worked to redefine the test image in terms of the input image
 
-    Feature Matching, this generally involves cases where the object is know to be present as feature matching only helps in figuring out the orientation and the       position of the object.But, i utilized feature matching to define feature rich patches in the test image, allowing for object discovery, more specifically        interesting feature patches.
+Feature Matching, this generally involves cases where the object is know to be present as feature matching only helps in figuring out the orientation and the       position of the object.But, i utilized feature matching to define feature rich patches in the test image, allowing for object discovery, more specifically        interesting feature patches.
 
 Neural Networks, this is a broad category, becasuse i tested various neural networks that would be useful in different stages of the process.
     1) Object discovery
