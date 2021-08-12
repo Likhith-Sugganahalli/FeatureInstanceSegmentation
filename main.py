@@ -1,8 +1,9 @@
 import os
-
+import math
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy.lib.function_base import _average_dispatcher
 from sklearn.cluster import DBSCAN
 from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import LocalOutlierFactor
@@ -15,8 +16,6 @@ from skimage.feature import peak_local_max
 from ImageSim.ResNet50Sim import ResNetSim
 from ImageSim.VGG16Sim import VGGSim
 import pytesseract
-
-
 #from OS2D.neural import Os2d
 
 class MyImage:
@@ -30,6 +29,11 @@ class MyImage:
 	def __str__(self):
 		return self.__name
 
+def pairwise(iterable):
+    "s -> (s0, s1), (s2, s3), (s4, s5), ..."
+    a = iter(iterable)
+    return zip(a, a)
+
 class CVrunner:
 
 
@@ -39,12 +43,9 @@ class CVrunner:
 		self.template_location = os.path.join(current_dir,'templates')
 		self.template_imgs = list(self.load_images_from_folder(self.template_location))
 		self.test_imgs = list(self.load_images_from_folder(self.test_location))
-		#OS2D is commented right now, due to it throwing up CUDA memory problems out of the blue
 		#self.Os2d = Os2d()
-		print('setting up VGG')
-		self.VGGSim = VGGSim()
-		print('setting up ResNet')
-		self.ResNetSim = ResNetSim()
+		#self.VGGSim = VGGSim()
+		#self.ResNetSim = ResNetSim()
 
 	def load_images_from_folder(self,folder):
 		for filename in os.listdir(folder):
@@ -86,11 +87,14 @@ class CVrunner:
 			pt2 = [int(dst[1][0][0]),int(dst[1][0][1])]
 			pt3 = [int(dst[2][0][0]),int(dst[2][0][1])]
 			pt4 = [int(dst[3][0][0]),int(dst[3][0][1])]
-			img2_copy = cv2.circle(img2_copy,(pt1[0],pt1[1]), radius=5, color=(0, 0, 255), thickness=-1)
-			img2_copy = cv2.circle(img2_copy,(pt2[0],pt2[1]), radius=5, color=(0, 0, 255), thickness=-1)
-			img2_copy = cv2.circle(img2_copy,(pt3[0],pt3[1]), radius=5, color=(0, 0, 255), thickness=-1)
-			img2_copy = cv2.circle(img2_copy,(pt4[0],pt4[1]), radius=5, color=(0, 0, 255), thickness=-1)
-			img2_copy = cv2.polylines(img2_copy,[np.int32(dst)],True,255,3, cv2.LINE_AA)
+			ret =self.improve_homography([pt1,pt2,pt3,pt4])
+			#img2_copy = cv2.circle(img2_copy,(pt1[0],pt1[1]), radius=5, color=(0, 0, 255), thickness=-1)
+			#img2_copy = cv2.circle(img2_copy,(pt2[0],pt2[1]), radius=5, color=(0, 0, 255), thickness=-1)
+			#img2_copy = cv2.circle(img2_copy,(pt3[0],pt3[1]), radius=5, color=(0, 0, 255), thickness=-1)
+			#img2_copy = cv2.circle(img2_copy,(pt4[0],pt4[1]), radius=5, color=(0, 0, 255), thickness=-1)
+			#img2_copy = cv2.polylines(img2_copy,[np.int32(dst)],True,255,3, cv2.LINE_AA)
+			
+			cv2.rectangle(img2_copy, ret[0], ret[1], (255,0,0), 2)
 		else:
 			print( "Not enough matches are found - {}/{}".format(len(good), MIN_MATCH_COUNT) )
 			matchesMask = None
@@ -102,6 +106,18 @@ class CVrunner:
 		img3 = cv2.drawMatches(img1,kp1,img2_copy,kp2,good,None,**draw_params)
 		plt.imshow(cv2.cvtColor(img3, cv2.COLOR_BGR2RGB), 'gray'),plt.show()
 	
+
+
+	def improve_homography(self,pts):
+		distances = []
+		min_pt = np.amin(pts, axis=0)
+		for pt1,pt2 in pairwise(pts):
+			print(pt1,pt2)
+			distance = math.dist(pt1,pt2)
+			distances.append(distance)
+		avg_distance = int(sum(distances)/len(distances))
+		return(min_pt,[min_pt[0]+avg_distance, min_pt[1]+avg_distance])
+
 	def watershed(self,img):
 		img_grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 		#img = img_object.img
@@ -129,12 +145,12 @@ class CVrunner:
 		markers = cv2.watershed(img,markers)
 		img[markers == -1] = [255,0,0]
 		cv2.imshow('thresh', thresh)
-		cv2.imshow('opening', opening)
-		cv2.imshow('sure_bg', sure_bg)
-		cv2.imshow('sure_fg', sure_fg)
-		cv2.imshow('markers', img)
-		cv2.waitKey(0)
-		cv2.destroyAllWindows()
+		#cv2.imshow('opening', opening)
+		#cv2.imshow('sure_bg', sure_bg)
+		#cv2.imshow('sure_fg', sure_fg)
+		#cv2.imshow('markers', img)
+		#cv2.waitKey(0)
+		#cv2.destroyAllWindows()
 
 	def sklearn_watershed(self,roi):
 		image = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
@@ -256,11 +272,12 @@ class CVrunner:
 			rows = int(len(rois)/2) + 1
 			cols = 2
 			for i,roi in enumerate(rois):
+				pass
 				#uncomment to view rois individually
 				#plt.imshow(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB)),plt.show()
 
 
-				resized_roi = cv2.resize(roi, (224,224))
+				#resized_roi = cv2.resize(roi, (224,224))
 
 				#self.Os2d.image_reader(img1,roi)
 				#self.Os2d.main()
