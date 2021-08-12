@@ -62,3 +62,5 @@ Uncomment the following on Line 269
 #ret = self.VGGSim.main([cv2.cvtColor(resized_img1, cv2.COLOR_BGR2RGB),cv2.cvtColor(resized_roi, cv2.COLOR_BGR2RGB)])
 
 then uncomment Lines 274,286 and section 279-284
+
+Homography can be run with, or without improve_homography, which is an attempt to redraw the perspectiveTransform into a more accurate sqaure, the function is still a work in progress, and is not as accurate as needed,
