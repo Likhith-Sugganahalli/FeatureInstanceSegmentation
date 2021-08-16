@@ -26,7 +26,7 @@ Neural Networks, this is a broad category, becasuse i tested various neural netw
     2) Similarity Matching
     3) One Shot Object detection
 
-All three uses are very promising and require more in-depth research, of the 3, 2 applications are included in the git repo, ResNet50 and VGG16 were used to obtain feature vector of the test image while OS2D is a One shot Object detection Neural Network specifically  designed to work with groceries and similar products,
+All three uses are very promising and require more in-depth research, all 3 applications are included in the git repo, ResNet50 and VGG16 were used to obtain feature vector of the test image while OS2D is a One shot Object detection Neural Network specifically  designed to work with groceries and similar products,
 
 ResNet50 and VGG16 can be run directly from the main.py while the OS2D is not completely included in the repo, only the python code I modified to work with main.py
 
