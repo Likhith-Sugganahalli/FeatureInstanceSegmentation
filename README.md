@@ -1,4 +1,7 @@
 Links:
+
+google docs:https://docs.google.com/document/d/1B3WY0HRutYEf5ACodvgU9-S1XU5fsKQrKeeJFAOtFWU/edit?usp=sharing
+
 https://github.com/XingLiangLondon/Image-Similarity-in-Percentage
 https://github.com/aosokin/os2d
 
