@@ -3,20 +3,10 @@ import math
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-from numpy.lib.function_base import _average_dispatcher
 from sklearn.cluster import DBSCAN
 from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import LocalOutlierFactor
 
-from scipy import ndimage as ndi
-
-from skimage.segmentation import watershed
-from skimage.feature import peak_local_max
-
-from ImageSim.ResNet50Sim import ResNetSim
-from ImageSim.VGG16Sim import VGGSim
-import pytesseract
-#from OS2D.neural import Os2d
 
 class MyImage:
 	def __init__(self, img_name):
@@ -60,13 +50,9 @@ class CVrunner:
 				self.runner(img1,img2)
 
 	def orb_features(self,img_object):
-
 		img = img_object.img
-
 		orb2 = cv2.ORB_create(10000, 1.2, nlevels=8, edgeThreshold = 5)
-
 		kp, des = orb2.detectAndCompute(img, None)
-
 		return kp,des
 
 	def homography(self,kp1,img1,kp2,img2,good):
@@ -117,67 +103,6 @@ class CVrunner:
 			distances.append(distance)
 		avg_distance = int(sum(distances)/len(distances))
 		return(min_pt,[min_pt[0]+avg_distance, min_pt[1]+avg_distance])
-
-	def watershed(self,img):
-		img_grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-		#img = img_object.img
-		ret, thresh = cv2.threshold(img_grey,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
-		# noise removal
-		kernel = np.ones((3,3),np.uint8)
-		opening = cv2.morphologyEx(thresh,cv2.MORPH_OPEN,kernel, iterations = 2)
-
-		#img_rgb = cv2.cvtColor(img_cv, cv2.COLOR_BGR2RGB)
-		print(pytesseract.image_to_string(thresh))
-		# sure background area
-		sure_bg = cv2.dilate(opening,kernel,iterations=3)
-		# Finding sure foreground area
-		dist_transform = cv2.distanceTransform(opening,cv2.DIST_L2,5)
-		ret, sure_fg = cv2.threshold(dist_transform,0.7*dist_transform.max(),255,0)
-		# Finding unknown region
-		sure_fg = np.uint8(sure_fg)
-		unknown = cv2.subtract(sure_bg,sure_fg)
-		# Marker labelling
-		ret, markers = cv2.connectedComponents(sure_fg)
-		# Add one to all labels so that sure background is not 0, but 1
-		markers = markers+1
-		# Now, mark the region of unknown with zero
-		markers[unknown==255] = 0
-		markers = cv2.watershed(img,markers)
-		img[markers == -1] = [255,0,0]
-		cv2.imshow('thresh', thresh)
-		#cv2.imshow('opening', opening)
-		#cv2.imshow('sure_bg', sure_bg)
-		#cv2.imshow('sure_fg', sure_fg)
-		#cv2.imshow('markers', img)
-		#cv2.waitKey(0)
-		#cv2.destroyAllWindows()
-
-	def sklearn_watershed(self,roi):
-		image = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-		# Now we want to separate the two objects in image
-		# Generate the markers as local maxima of the distance to the background
-		distance = ndi.distance_transform_edt(image)
-		coords = peak_local_max(distance, footprint=np.ones((3, 3)), labels=image)
-		mask = np.zeros(distance.shape, dtype=bool)
-		mask[tuple(coords.T)] = True
-		markers, _ = ndi.label(mask)
-		labels = watershed(-distance, markers, mask=image)
-
-		fig, axes = plt.subplots(ncols=3, figsize=(9, 3), sharex=True, sharey=True)
-		ax = axes.ravel()
-
-		ax[0].imshow(roi, cmap=plt.cm.gray)
-		ax[0].set_title('Overlapping objects')
-		ax[1].imshow(-distance, cmap=plt.cm.gray)
-		ax[1].set_title('Distances')
-		ax[2].imshow(labels, cmap=plt.cm.nipy_spectral)
-		ax[2].set_title('Separated objects')
-
-		for a in ax:
-			a.set_axis_off()
-
-		fig.tight_layout()
-		plt.show()
 
 	def test(self,kp1,des1,img1,kp2,des2,img2, matches):
 
